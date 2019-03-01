@@ -55,11 +55,11 @@ spec:
     '''
     }
   }
-
+  
   options {
-    buildDiscarder(logRotator(numToKeepStr:'15'))
+    buildDiscarder(logRotator(numToKeepStr:'5'))
     disableConcurrentBuilds()
-    timeout(time: 60, unit: 'MINUTES')
+    timeout(time: 240, unit: 'MINUTES')
     timestamps()
   }
 
@@ -84,6 +84,9 @@ spec:
             git reset --hard
           fi
         '''
+        
+        checkout scm
+        sh 'git submodule update --init --recursive'
         
         dir('build') { deleteDir() }
         dir('.m2/repository/org/eclipse/xtext') { deleteDir() }
@@ -111,8 +114,8 @@ spec:
     stage('Maven Build') {
       steps {
         sh '''
+          /home/vnc/.vnc/xstartup.sh
           mvn \
-            -f releng \
             --batch-mode \
             --update-snapshots \
             -fae \

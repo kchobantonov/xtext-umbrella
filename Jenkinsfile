@@ -85,6 +85,9 @@ spec:
           fi
         '''
         
+        checkout scm
+        sh 'git submodule update --init --recursive'
+        
         dir('build') { deleteDir() }
         dir('.m2/repository/org/eclipse/xtext') { deleteDir() }
         dir('.m2/repository/org/eclipse/xtend') { deleteDir() }
@@ -111,8 +114,8 @@ spec:
     stage('Maven Build') {
       steps {
         sh '''
+          /home/vnc/.vnc/xstartup.sh
           mvn \
-            -f releng \
             --batch-mode \
             --update-snapshots \
             -fae \
