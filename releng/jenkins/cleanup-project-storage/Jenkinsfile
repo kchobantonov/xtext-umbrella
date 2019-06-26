@@ -68,6 +68,7 @@ spec:
         sshagent(['projects-storage.eclipse.org-bot-ssh']) {
           // Cleanup nightly builds except for the NUMBER_OF_DROPS_TO_KEEP recent ones
           sh '''
+            set +x
             DOWNLOAD_AREA="/home/data/httpd/download.eclipse.org/modeling/tmf/xtext/downloads/drops"
             # find most recent NUMBER_OF_DROPS_TO_KEEP directories
             TO_KEEP=$(ssh genie.xtext@projects-storage.eclipse.org find $DOWNLOAD_AREA -type d -name N* | sort --reverse | head -n $NUMBER_OF_DROPS_TO_KEEP)
@@ -77,6 +78,13 @@ spec:
             echo "Keep $NUMBER_OF_DROPS_TO_KEEP most recent builds"
             echo "  Excluded from cleanup: $TO_KEEP"
             echo "  Deleting             : $TO_DELETE"
+            
+            CMD="ssh genie.xtext@projects-storage.eclipse.org for DIR in $TO_DELETE; do rm -rf $DIR; done"
+            if [ $DRY_RUN ]; then
+              echo "*** DRY RUN *** $CMD"
+            else
+              eval $($CMD)
+            fi
           '''
           //
         } 
