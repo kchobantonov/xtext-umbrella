@@ -1,0 +1,88 @@
+pipeline {
+  agent {
+    kubernetes {
+      label 'releng-cleanup-nightly-drops-' + env.BUILD_NUMBER
+      defaultContainer 'jnlp'
+      yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: jnlp
+    image: 'eclipsecbi/jenkins-jnlp-agent'
+    args: ['\$(JENKINS_SECRET)', '\$(JENKINS_NAME)']
+    resources:
+      limits:
+        memory: "3.6Gi"
+        cpu: "1.0"
+      requests:
+        memory: "3.6Gi"
+        cpu: "1.0"
+    volumeMounts:
+    - mountPath: /home/jenkins/.ssh
+      name: volume-known-hosts
+    - name: settings-xml
+      mountPath: /home/jenkins/.m2/settings.xml
+      subPath: settings.xml
+      readOnly: true
+    - name: m2-repo
+      mountPath: /home/jenkins/.m2/repository
+  volumes:
+  - name: volume-known-hosts
+    configMap:
+      name: known-hosts
+  - name: settings-xml
+    configMap: 
+      name: m2-dir
+      items:
+      - key: settings.xml
+        path: settings.xml
+  - name: m2-repo
+    emptyDir: {}
+    '''
+    }
+  }
+
+  options {
+    buildDiscarder(logRotator(numToKeepStr:'15'))
+    disableConcurrentBuilds()
+    timeout(time: 15, unit: 'MINUTES')
+    timestamps()
+  }
+
+  // https://jenkins.io/doc/book/pipeline/syntax/#triggers
+  /*
+  triggers {
+    cron('30 21 * * *') // nightly at 21:30
+  }
+  */
+  
+  parameters {
+    string      (name: 'NUMBER_OF_DROPS_TO_KEEP', defaultValue: '4', description: 'How many nightly drops should be kept?')
+    booleanParam(name: 'DRY_RUN', description: 'If set the job won't perform file changes')
+  }
+
+  stages {
+    stage('Cleanup Nightly Drops') {
+      steps {
+        sshagent(['projects-storage.eclipse.org-bot-ssh']) {
+          // Cleanup nightly builds except for the NUMBER_OF_DROPS_TO_KEEP recent ones
+          sh '''
+            DOWNLOAD_AREA="/home/data/httpd/download.eclipse.org/modeling/tmf/xtext/downloads/drops"
+            # find most recent NUMBER_OF_DROPS_TO_KEEP directories
+            TO_KEEP=$(ssh genie.xtext@projects-storage.eclipse.org find /tmp/ -type d -name N* | sort --reverse | head -n $NUMBER_OF_DROPS_TO_KEEP)
+            # find all N* directories older than the first NUMBER_OF_DROPS_TO_KEEP
+            TO_DELETE=$(ssh genie.xtext@projects-storage.eclipse.org find /tmp/ -type d -name N* | sort --reverse | tail -n +$(($NUMBER_OF_DROPS_TO_KEEP + 1)))
+            
+            echo "Keep $NUMBER_OF_DROPS_TO_KEEP most recent builds"
+            echo "  Excluded from cleanup: $TO_KEEP"
+            echo "  Deleting             : $TO_DELETE"
+          '''
+          //
+        } 
+      }
+    }
+
+  }
+
+}
