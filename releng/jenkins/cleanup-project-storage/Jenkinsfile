@@ -59,7 +59,7 @@ spec:
   
   parameters {
     string      (name: 'NUMBER_OF_DROPS_TO_KEEP', defaultValue: '4', description: 'How many nightly drops should be kept?')
-    booleanParam(name: 'DRY_RUN', description: 'If set the job won't perform file changes')
+    booleanParam(name: 'DRY_RUN', description: 'If set the job does not perform file changes')
   }
 
   stages {
