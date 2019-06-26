@@ -70,9 +70,9 @@ spec:
           sh '''
             DOWNLOAD_AREA="/home/data/httpd/download.eclipse.org/modeling/tmf/xtext/downloads/drops"
             # find most recent NUMBER_OF_DROPS_TO_KEEP directories
-            TO_KEEP=$(ssh genie.xtext@projects-storage.eclipse.org find /tmp/ -type d -name N* | sort --reverse | head -n $NUMBER_OF_DROPS_TO_KEEP)
+            TO_KEEP=$(ssh genie.xtext@projects-storage.eclipse.org find $DOWNLOAD_AREA -type d -name N* | sort --reverse | head -n $NUMBER_OF_DROPS_TO_KEEP)
             # find all N* directories older than the first NUMBER_OF_DROPS_TO_KEEP
-            TO_DELETE=$(ssh genie.xtext@projects-storage.eclipse.org find /tmp/ -type d -name N* | sort --reverse | tail -n +$(($NUMBER_OF_DROPS_TO_KEEP + 1)))
+            TO_DELETE=$(ssh genie.xtext@projects-storage.eclipse.org find $DOWNLOAD_AREA -type d -name N* | sort --reverse | tail -n +$(($NUMBER_OF_DROPS_TO_KEEP + 1)))
             
             echo "Keep $NUMBER_OF_DROPS_TO_KEEP most recent builds"
             echo "  Excluded from cleanup: $TO_KEEP"
