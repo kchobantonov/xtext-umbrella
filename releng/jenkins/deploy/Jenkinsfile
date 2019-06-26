@@ -71,11 +71,25 @@ spec:
         '''
       }
     }
-    stage('Copy Artifacts') {
+    stage('Cleanup') {
       steps {
-        // Cleanup nightly builds except for the 4 recent ones
-        
-        // 
+        sshagent(['projects-storage.eclipse.org-bot-ssh']) {
+          // Cleanup nightly builds except for the 4 recent ones
+          sh '''
+            DOWNLOAD_AREA=$(grep 'downloads.area' build-result/publisher.properties | awk -F= '{print $2}')
+            XTEXT_VERSION=$(grep 'version' build-result/publisher.properties | awk -F= '{print $2}')
+            DROP_DIR=
+            # find most recent 4 directories
+            TO_KEEP=$(ssh genie.xtext@projects-storage.eclipse.org find /tmp/ -type d -name N* | sort --reverse | head -n 4)
+            # find all N* directories older than the first 4
+            TO_DELETE=$(ssh genie.xtext@projects-storage.eclipse.org find /tmp/ -type d -name N* | sort --reverse | tail -n +5)
+            
+            echo "Keep 4 most recent builds"
+            echo "  Excluded from cleanup: $TO_KEEP"
+            echo "  Deleting             : $TO_DELETE"
+          '''
+          //
+        } 
       }
     }
 
