@@ -1,0 +1,84 @@
+pipeline {
+  agent {
+    kubernetes {
+      label 'xtext-deploy-' + env.BUILD_NUMBER
+      defaultContainer 'jnlp'
+      yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: jnlp
+    image: 'eclipsecbi/jenkins-jnlp-agent'
+    args: ['\$(JENKINS_SECRET)', '\$(JENKINS_NAME)']
+    resources:
+      limits:
+        memory: "3.6Gi"
+        cpu: "1.0"
+      requests:
+        memory: "3.6Gi"
+        cpu: "1.0"
+    volumeMounts:
+    - mountPath: /home/jenkins/.ssh
+      name: volume-known-hosts
+    - name: settings-xml
+      mountPath: /home/jenkins/.m2/settings.xml
+      subPath: settings.xml
+      readOnly: true
+    - name: m2-repo
+      mountPath: /home/jenkins/.m2/repository
+  volumes:
+  - name: volume-known-hosts
+    configMap:
+      name: known-hosts
+  - name: settings-xml
+    configMap: 
+      name: m2-dir
+      items:
+      - key: settings.xml
+        path: settings.xml
+  - name: m2-repo
+    emptyDir: {}
+    '''
+    }
+  }
+
+  options {
+    buildDiscarder(logRotator(numToKeepStr:'15'))
+    disableConcurrentBuilds()
+    timeout(time: 60, unit: 'MINUTES')
+    timestamps()
+  }
+
+  // https://jenkins.io/doc/book/pipeline/syntax/#triggers
+  /*
+  triggers {
+    cron('50 21 * * *') // nightly at 21:50
+  }
+  */
+  
+  parameters {
+    choice(name: 'JOB_TO_DEPLOY', choices: ['xtext-snapshots'], description: 'Select the job from which the <tt>build-result</tt> artifacts should be copied.')
+  }
+
+  stages {
+    stage('Copy Artifacts') {
+      steps {
+        //copyArtifacts filter: 'build-result/**', fingerprintArtifacts: true, projectName: 'xtext-snapshots', selector: lastSuccessful()
+        sh '''
+          curl https://ci.eclipse.org/xtext/job/$JOB_TO_DEPLOY/lastSuccessfulBuild/artifact/build-result/*zip*/build-result.zip --output build-result.zip
+          unzip build-result.zip
+        '''
+      }
+    }
+    stage('Copy Artifacts') {
+      steps {
+        // Cleanup nightly builds except for the 4 recent ones
+        
+        // 
+      }
+    }
+
+  }
+
+}
