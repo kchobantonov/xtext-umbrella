@@ -2,7 +2,7 @@ pipeline {
   agent {
     kubernetes {
       label 'releng-build-artifacts-for-release-' + env.BUILD_NUMBER
-      defaultContainer 'gradle'
+      defaultContainer 'xtext-buildenv'
       yaml '''
 apiVersion: v1
 kind: Pod
@@ -21,14 +21,15 @@ spec:
       requests:
         memory: "0.5Gi"
         cpu: "0.2"
-  - name: gradle
-    image: 'gradle:5.4'
+  - name: xtext-buildenv
+    image: docker.io/smoht/xtext-buildenv:0.7
+    tty: true
     resources:
       limits:
-        memory: "2.5Gi"
+        memory: "3.5Gi"
         cpu: "1.0"
       requests:
-        memory: "2.5Gi"
+        memory: "3.5Gi"
         cpu: "1.0"
     volumeMounts:
     - name: settings-xml
@@ -86,11 +87,14 @@ spec:
     stage('Execute Publishing Plugin') {
       steps {
         sh '''
-          gradle \
+          XTEXT_VERSION=$(curl -s https://raw.githubusercontent.com/eclipse/xtext-umbrella/$BRANCH_TO_DEPLOY/releng/org.eclipse.xtext.sdk.parent/pom.xml | grep -m1 -Po "<version>\\K[^<]*")
+          echo "Xtext version on branch $BRANCH_TO_DEPLOY is $XTEXT_VERSION"
+          ./gradlew \
             --stacktrace \
             --refresh-dependencies \
-            -Posspub.userMavenSettings=/home/jenkins/.m2/settings.xml \
             -PJENKINS_URL=$JENKINS_URL \
+            -Posspub.userMavenSettings=/home/jenkins/.m2/settings.xml \
+            -Posspub.version=$XTEXT_VERSION
             -Psigning.secretKeyRingFile=$KEYRING \
             -Psigning.keyId=D1AE0CFD \
             clean publishMavenXtext publishEclipseXtext
