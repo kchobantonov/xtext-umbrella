@@ -22,7 +22,7 @@ spec:
         memory: "0.5Gi"
         cpu: "0.2"
   - name: xtext-buildenv
-    image: docker.io/smoht/xtext-buildenv:0.7
+    image: docker.io/smoht/xtext-buildenv:0.9
     tty: true
     resources:
       limits:
