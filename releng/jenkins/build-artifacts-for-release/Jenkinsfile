@@ -1,0 +1,102 @@
+pipeline {
+  agent {
+    kubernetes {
+      label 'releng-build-artifacts-for-release-' + env.BUILD_NUMBER
+      defaultContainer 'jnlp'
+      yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: jnlp
+    image: 'eclipsecbi/jenkins-jnlp-agent'
+    args: ['\$(JENKINS_SECRET)', '\$(JENKINS_NAME)']
+    resources:
+      limits:
+        memory: "3.6Gi"
+        cpu: "1.0"
+      requests:
+        memory: "3.6Gi"
+        cpu: "1.0"
+    volumeMounts:
+    - mountPath: /home/jenkins/.ssh
+      name: volume-known-hosts
+    - name: settings-xml
+      mountPath: /home/jenkins/.m2/settings.xml
+      subPath: settings.xml
+      readOnly: true
+    - name: m2-repo
+      mountPath: /home/jenkins/.m2/repository
+  volumes:
+  - name: volume-known-hosts
+    configMap:
+      name: known-hosts
+  - name: settings-xml
+    configMap: 
+      name: m2-dir
+      items:
+      - key: settings.xml
+        path: settings.xml
+  - name: m2-repo
+    emptyDir: {}
+    '''
+    }
+  }
+
+  options {
+    buildDiscarder(logRotator(numToKeepStr:'15'))
+    disableConcurrentBuilds()
+    timeout(time: 45, unit: 'MINUTES')
+    timestamps()
+  }
+
+  // https://jenkins.io/doc/book/pipeline/syntax/#triggers
+  triggers {
+    cron('50 21 * * *') // nightly at 21:50
+  }
+  
+  parameters {
+    string      (name: 'BRANCH_TO_DEPLOY', defaultValue: 'master', description: 'From which Git branch should the release be created (master for snapshot deployments)?')
+    booleanParam(name: 'SIGN_JARS', defaultValue: true, description: 'Whether to sign jars using the Eclipse web service')
+    booleanParam(name: 'PACK_JARS', defaultValue: true, description: 'Whether to pack jars using pack200')
+  }
+  
+  environment {
+    DOWNLOAD_AREA = '/home/data/httpd/download.eclipse.org/modeling/tmf/xtext/downloads/drops'
+  }
+
+  stages {
+    stage('Prepare') {
+      steps {
+        git branch: 'master', changelog: false, poll: false, url: 'https://github.com/xtext/publishing.git'
+      }
+    }
+    
+    stage('Execute Publishing Plugin') {
+      steps {
+        configFileProvider([configFile(fileId: 'secret-subkeys.asc', variable: 'KEYRING')]) {
+          sh '''
+            # Import GPG keyring with --batch and trust the keys non-interactively
+            # see https://wiki.eclipse.org/Jenkins#How_can_artifacts_be_deployed_to_OSSRH_.2F_Maven_Central.3F
+            #gpg --batch --import "${KEYRING}"
+            #for fpr in $(gpg --list-keys --with-colons  | awk -F: '/fpr:/ {print $10}' | sort -u);
+            #do
+            #  echo -e "5\ny\n" |  gpg --batch --command-fd 0 --expert --edit-key $fpr trust;
+            #done
+
+            ./gradlew \
+              --stacktrace \
+              --refresh-dependencies \
+              -Posspub.userMavenSettings=/home/jenkins/.m2/settings.xml \
+              -PJENKINS_URL=$JENKINS_URL \
+              -Psigning.secretKeyRingFile=$KEYRING \
+              -Psigning.keyId=D1AE0CFD \
+              clean publishMavenXtext publishEclipseXtext
+          '''
+        }
+      }
+    }
+
+  }
+
+}
