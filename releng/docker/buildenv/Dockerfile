@@ -4,8 +4,6 @@ MAINTAINER karsten.thoms@itemis.de
 # Back to root for install
 USER 0
 
-RUN dnf -y update
-
 # ruby-devel required to install jekyll
 # redhat-rpm-config required during jekyll install: gcc: error: /usr/lib/rpm/redhat/redhat-hardened-cc1: No such file or directory
 
@@ -38,6 +36,10 @@ RUN dnf --assumeyes install \
 RUN dnf --assumeyes install gpg
 # Make Java 11 default
 RUN alternatives --config java <<< '2'
+# see https://docs.openshift.com/container-platform/3.9/creating_images/guidelines.html#use-uid
+RUN chgrp -R 0 /home/default && \
+    chmod -R g=u /home/default
+
 USER default
 
 # needed for Xtend MOJO IT tests
