@@ -59,6 +59,12 @@ spec:
   
   parameters {
     choice(name: 'JOB_TO_DEPLOY', choices: ['xtext-snapshots'], description: 'Select the job from which the <tt>build-result</tt> artifacts should be copied.')
+    booleanParam(name: 'REPLACE_EXISTING', description: 'If set then replace existing files / clear target directories')
+    booleanParam(name: 'DRY_RUN', description: 'If set the job does not perform file changes')
+  }
+
+  environment {
+    DOWNLOAD_AREA = '/home/data/httpd/download.eclipse.org/modeling/tmf/xtext/downloads/drops'
   }
 
   stages {

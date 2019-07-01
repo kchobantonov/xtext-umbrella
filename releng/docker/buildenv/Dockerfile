@@ -30,14 +30,17 @@ ENTRYPOINT "/bin/bash"
 
 USER 0
 RUN dnf --assumeyes install \
-  java-1.8.0-openjdk.x86_64 \
-  java-1.8.0-openjdk-src.x86_64 \
+  java-11-openjdk.x86_64 \
+  java-11-openjdk-src.x86_64 \
   groovy \
   maven \
   hub
+RUN dnf --assumeyes install gpg
+# Make Java 11 default
+RUN alternatives --config java <<< '2'
 USER default
 
 # needed for Xtend MOJO IT tests
 ENV M2_HOME=/usr/share/maven
-ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk
+ENV JAVA_HOME=/usr/lib/jvm/jre-11-openjdk
 
