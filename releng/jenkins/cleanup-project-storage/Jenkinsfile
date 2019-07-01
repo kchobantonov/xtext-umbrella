@@ -81,14 +81,14 @@ spec:
             TO_DELETE=$(ssh genie.xtext@projects-storage.eclipse.org find $DOWNLOAD_AREA -type d -name N* | sort --reverse | tail -n +$(($NUMBER_OF_DROPS_TO_KEEP + 1)))
             
             echo "Keep $NUMBER_OF_DROPS_TO_KEEP most recent builds"
-            echo "  Excluded from cleanup: $TO_KEEP"
-            echo "  Deleting             : $TO_DELETE"
+            echo "  Excluded from cleanup: \n$TO_KEEP"
+            echo "  Deleting             : \n$TO_DELETE"
             
             CMD="ssh genie.xtext@projects-storage.eclipse.org for DIR in $TO_DELETE; do rm -rf $DIR; done"
-            if [ $DRY_RUN ]; then
+            if [ "$DRY_RUN" == "true" ]; then
               echo "*** DRY RUN *** $CMD"
             else
-              eval $($CMD)
+              $($CMD)
             fi
           '''
           //
