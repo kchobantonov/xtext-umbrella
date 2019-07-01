@@ -70,28 +70,34 @@ spec:
         sshagent(['projects-storage.eclipse.org-bot-ssh']) {
           // Cleanup nightly builds except for the NUMBER_OF_DROPS_TO_KEEP recent ones
           sh '''
-            set +x
-            # find most recent NUMBER_OF_DROPS_TO_KEEP directories
-            #   - search for directories with names starting with 'N'
-            #   - sort by name. This includes Xtext version and build timestamp, so sorting the list reverse will
-            #     result in a list of paths with newest timestamp in front.
-            #   - use 'head' to get only the first N lines for TO_KEEP, and 'tail' for TO_DELETE 
-            TO_KEEP=$(ssh genie.xtext@projects-storage.eclipse.org find $DOWNLOAD_AREA -type d -name N* | sort --reverse | head -n $NUMBER_OF_DROPS_TO_KEEP)
-            # find all N* directories older than the first NUMBER_OF_DROPS_TO_KEEP
-            TO_DELETE=$(ssh genie.xtext@projects-storage.eclipse.org find $DOWNLOAD_AREA -type d -name N* | sort --reverse | tail -n +$(($NUMBER_OF_DROPS_TO_KEEP + 1)))
-            
-            echo "Keep $NUMBER_OF_DROPS_TO_KEEP most recent builds"
-            echo "  Excluded from cleanup: \n$TO_KEEP"
-            echo "  Deleting             : \n$TO_DELETE"
-            
-            CMD="ssh genie.xtext@projects-storage.eclipse.org for DIR in $TO_DELETE; do rm -rf $DIR; done"
-            if [ "$DRY_RUN" == "true" ]; then
-              echo "*** DRY RUN *** $CMD"
-            else
-              $($CMD)
-            fi
-          '''
-          //
+							ssh genie.xtext@projects-storage.eclipse.org /bin/bash <<-EOF
+								set -x
+								# find most recent NUMBER_OF_DROPS_TO_KEEP directories
+								#   - search for directories with names starting with 'N'
+								#   - sort by name. This includes Xtext version and build timestamp, so sorting the list reverse will
+								#     result in a list of paths with newest timestamp in front.
+								#   - use 'head' to get only the first N lines for TO_KEEP, and 'tail' for TO_DELETE 
+								TO_KEEP=\\$(find $DOWNLOAD_AREA -type d -name N* | sort --reverse | head -n $NUMBER_OF_DROPS_TO_KEEP)
+								# find all N* directories older than the first NUMBER_OF_DROPS_TO_KEEP
+								TO_DELETE=\\$(find $DOWNLOAD_AREA -type d -name N* | sort --reverse | tail -n +\\$(($NUMBER_OF_DROPS_TO_KEEP + 1)))
+
+								echo $TO_DELETE
+								echo $TO_KEEP
+
+								echo "Keep $NUMBER_OF_DROPS_TO_KEEP most recent builds"
+								echo "  Excluded from cleanup: \n\$TO_KEEP"
+								echo "  Deleting             : \n\$TO_DELETE"
+
+								for DIR in \$TO_DELETE
+								do
+										if [ "$DRY_RUN" == "true" ]; then
+											echo "*** DRY RUN *** Deleting \$DIR"
+										else
+											echo \$DIR
+										fi
+								done
+							EOF
+            '''
         } 
       }
     }
