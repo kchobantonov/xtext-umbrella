@@ -94,8 +94,7 @@ spec:
           do
             echo -e "5\ny\n" |  gpg --batch --command-fd 0 --expert --edit-key $fpr trust;
           done
-          gpg -K
-          cat /home/jenkins/.m2/settings.xml
+
           ./gradlew \
             --stacktrace \
             --refresh-dependencies \
