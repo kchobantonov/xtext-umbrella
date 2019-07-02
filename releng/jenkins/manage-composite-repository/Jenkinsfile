@@ -1,0 +1,91 @@
+pipeline {
+  agent {
+    kubernetes {
+      label 'manage-composite-repository-' + env.BUILD_NUMBER
+      defaultContainer 'jnlp'
+      yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: jnlp
+    image: 'eclipsecbi/jenkins-jnlp-agent'
+    args: ['\$(JENKINS_SECRET)', '\$(JENKINS_NAME)']
+    resources:
+      limits:
+        memory: "3.6Gi"
+        cpu: "1.0"
+      requests:
+        memory: "3.6Gi"
+        cpu: "1.0"
+    volumeMounts:
+    - mountPath: /home/jenkins/.ssh
+      name: volume-known-hosts
+  volumes:
+  - name: volume-known-hosts
+    configMap:
+      name: known-hosts
+    '''
+    }
+  }
+
+  options {
+    buildDiscarder(logRotator(numToKeepStr:'15'))
+    disableConcurrentBuilds()
+    timeout(time: 15, unit: 'MINUTES')
+    timestamps()
+  }
+
+  environment {
+    DOWNLOAD_AREA = '/home/data/httpd/download.eclipse.org/modeling/tmf/xtext/updates'
+  }
+
+  parameters {
+    choice(
+      name: 'COMPOSITE_REPO_LOCATION', 
+      choices: [
+        'archive',
+        'composite/archive',
+        'composite/latest',
+        'composite/maintenance/nightly',
+        'composite/maintenance/releases',
+        'composite/milestones',
+        'composite/nightly',
+        'composite/releases',
+        'composite/staging',
+        'epp',
+        'milestones',
+        'nightly',
+        'orbit/maintenance',
+        'orbit',
+        'releases',
+      ]
+    ),
+    choice(
+      name: 'OPERATION',
+      choices: 'READ','ADD_LOCATION','REMOVE_LOCATION','CLEAR',
+      description: 'Action to perform with the composite repository.'
+    ),
+    string(name: 'LOCATION_URL', description: 'For operation ADD_LOCATION, REMOVE_LOCATION: The URL to add or remove')
+  }
+  stages {
+    stage('do it!') {
+      steps {
+        sh '''
+          if [ -z "$$COMPOSITE_REPO_LOCATION" ]; then
+            echo "No repository selected."
+            exit -1
+          fi
+          mkdir -p $COMPOSITE_REPO_LOCATION
+          rm -f $COMPOSITE_REPO_LOCATION/*
+          sshagent(['projects-storage.eclipse.org-bot-ssh']) {
+          	scp genie.xtext@projects-storage.eclipse.org:$DOWNLOAD_AREA/$COMPOSITE_REPO_LOCATION/composite*.xml $COMPOSITE_REPO_LOCATION
+          }
+          
+          cat $COMPOSITE_REPO_LOCATION/compositeArtifacts.xml
+          cat $COMPOSITE_REPO_LOCATION/compositeContent.xml
+        '''
+      }
+    }
+  }
+}
