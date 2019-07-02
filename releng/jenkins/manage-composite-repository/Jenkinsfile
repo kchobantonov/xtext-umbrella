@@ -1,7 +1,7 @@
 pipeline {
   agent {
     kubernetes {
-      label 'manage-composite-repository-' + env.BUILD_NUMBER
+      label 'manage-composite-repository'
       defaultContainer 'jnlp'
       yaml '''
 apiVersion: v1
@@ -41,8 +41,7 @@ spec:
   }
 
   parameters {
-    choice(
-      name: 'COMPOSITE_REPO_LOCATION', 
+    choice(name: 'COMPOSITE_REPO_LOCATION', 
       choices: [
         'archive',
         'composite/archive',
@@ -58,33 +57,35 @@ spec:
         'nightly',
         'orbit/maintenance',
         'orbit',
-        'releases',
+        'releases'
       ]
-    ),
+    )
     choice(
       name: 'OPERATION',
-      choices: 'READ','ADD_LOCATION','REMOVE_LOCATION','CLEAR',
+      choices: ['READ','ADD_LOCATION','REMOVE_LOCATION','CLEAR'],
       description: 'Action to perform with the composite repository.'
-    ),
+    )
     string(name: 'LOCATION_URL', description: 'For operation ADD_LOCATION, REMOVE_LOCATION: The URL to add or remove')
   }
   stages {
     stage('do it!') {
       steps {
-        sh '''
-          if [ -z "$$COMPOSITE_REPO_LOCATION" ]; then
-            echo "No repository selected."
-            exit -1
-          fi
-          mkdir -p $COMPOSITE_REPO_LOCATION
-          rm -f $COMPOSITE_REPO_LOCATION/*
-          sshagent(['projects-storage.eclipse.org-bot-ssh']) {
-          	scp genie.xtext@projects-storage.eclipse.org:$DOWNLOAD_AREA/$COMPOSITE_REPO_LOCATION/composite*.xml $COMPOSITE_REPO_LOCATION
-          }
-          
-          cat $COMPOSITE_REPO_LOCATION/compositeArtifacts.xml
-          cat $COMPOSITE_REPO_LOCATION/compositeContent.xml
-        '''
+        sshagent(['projects-storage.eclipse.org-bot-ssh']) {
+          sh '''
+            if [ -z "$COMPOSITE_REPO_LOCATION" ]; then
+              echo "No repository selected."
+              exit -1
+            fi
+            mkdir -p $COMPOSITE_REPO_LOCATION
+            rm -f $COMPOSITE_REPO_LOCATION/*
+            scp genie.xtext@projects-storage.eclipse.org:$DOWNLOAD_AREA/$COMPOSITE_REPO_LOCATION/composite*.xml $COMPOSITE_REPO_LOCATION
+            
+            cat $COMPOSITE_REPO_LOCATION/compositeArtifacts.xml
+            cat $COMPOSITE_REPO_LOCATION/compositeContent.xml
+
+            TIMESTAMP=$(awk 'BEGIN {srand(); print srand()}')
+          '''
+        }
       }
     }
   }
