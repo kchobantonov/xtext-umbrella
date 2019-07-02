@@ -68,8 +68,8 @@ spec:
   
   parameters {
     string      (name: 'BRANCH_TO_DEPLOY', defaultValue: 'master', description: 'From which Git branch should the release be created (master for snapshot deployments)?')
-    booleanParam(name: 'SIGN_JARS', defaultValue: true, description: 'Whether to sign jars using the Eclipse web service')
-    booleanParam(name: 'PACK_JARS', defaultValue: true, description: 'Whether to pack jars using pack200')
+    booleanParam(name: 'ORG_GRADLE_PROJECT_OSSPUB_SIGN_JARS', defaultValue: true, description: 'Whether to sign jars using the Eclipse web service')
+    booleanParam(name: 'ORG_GRADLE_PROJECT_OSSPUB_PACK_JARS', defaultValue: true, description: 'Whether to pack jars using pack200')
   }
   
   environment {
@@ -94,6 +94,8 @@ spec:
           do
             echo -e "5\ny\n" |  gpg --batch --command-fd 0 --expert --edit-key $fpr trust;
           done
+          gpg -K
+          cat /home/jenkins/.m2/settings.xml
           ./gradlew \
             --stacktrace \
             --refresh-dependencies \
