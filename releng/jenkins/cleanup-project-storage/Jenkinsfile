@@ -81,8 +81,8 @@ spec:
 								# find all N* directories older than the first NUMBER_OF_DROPS_TO_KEEP
 								TO_DELETE=\\$(find $DOWNLOAD_AREA -type d -name N* | sort --reverse | tail -n +\\$(($NUMBER_OF_DROPS_TO_KEEP + 1)))
 
-								echo \$TO_DELETE
-								echo \$TO_KEEP
+								echo \\$TO_DELETE
+								echo \\$TO_KEEP
 
 								echo "Keep $NUMBER_OF_DROPS_TO_KEEP most recent builds"
 								echo "  Excluded from cleanup: \n\$TO_KEEP"
