@@ -70,8 +70,13 @@ spec:
         sshagent(['projects-storage.eclipse.org-bot-ssh']) {
           // Cleanup nightly builds except for the NUMBER_OF_DROPS_TO_KEEP recent ones
           sh '''
+              # ENV variables and subshells need to be escaped in order to be evaluated remotely.
+              # Exceptions are ENV variables filled by Jenkins locally:
+              #   * NUMBER_OF_DROPS_TO_KEEP
+              #   * DOWNLOAD_AREA
+              #   * DRY_RUN
 							ssh genie.xtext@projects-storage.eclipse.org /bin/bash <<-EOF
-								set -x
+								# set -x # <- Uncomment for debug
 								# find most recent NUMBER_OF_DROPS_TO_KEEP directories
 								#   - search for directories with names starting with 'N'
 								#   - sort by name. This includes Xtext version and build timestamp, so sorting the list reverse will
@@ -81,16 +86,16 @@ spec:
 								# find all N* directories older than the first NUMBER_OF_DROPS_TO_KEEP
 								TO_DELETE=\\$(find $DOWNLOAD_AREA -type d -name N* | sort --reverse | tail -n +\\$(($NUMBER_OF_DROPS_TO_KEEP + 1)))
 
-								echo "Keep $NUMBER_OF_DROPS_TO_KEEP most recent builds"
-								echo "  Excluded from cleanup: \n\\$TO_KEEP"
-								echo "  Deleting             : \n\\$TO_DELETE"
+								echo "Keep $NUMBER_OF_DROPS_TO_KEEP most recent builds.\n"
+								echo "    Keeping:\n\\$TO_KEEP"
+								echo "    Removing:\n\\$TO_DELETE"
 
 								for DIR in \\$TO_DELETE
 								do
 										if [ "$DRY_RUN" == "true" ]; then
 											echo "*** DRY RUN *** Deleting \\$DIR"
 										else
-											echo \\$DIR
+											rm -rf \\$DIR
 										fi
 								done
 							EOF
