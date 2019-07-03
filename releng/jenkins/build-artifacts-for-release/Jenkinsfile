@@ -94,6 +94,7 @@ spec:
   
   environment {
     DOWNLOAD_AREA = '/home/data/httpd/download.eclipse.org/modeling/tmf/xtext/downloads/drops'
+    NIGHTLY_REPOSITORY_PATH = '/home/data/httpd/download.eclipse.org/modeling/tmf/xtext/updates/nightly'
     KEYRING = credentials('252495d7-34e5-49de-8db4-bce7afae2da4')
   }
 
@@ -126,17 +127,72 @@ spec:
             -Posspub.packJars=$ORG_GRADLE_PROJECT_OSSPUB_PACK_JARS \
             -Psigning.secretKeyRingFile=/home/default/.gnupg/secring.gpg \
             -Psigning.keyId=D1AE0CFD \
-            clean publishMavenXtext publishEclipseXtext
+            clean publishEclipseXtext
+
+#            clean publishMavenXtext publishEclipseXtext
         '''
       }
     }
     
-    /*
     stage('Deploy to Eclipse project storage') {
       steps {
+        sh '''
+          # $1 path to .properties file
+          # $2 property name
+          # @return property value
+          get_property () {
+            if [ ! -f "$1" ]; then
+              echo "File not found: $1" >&2
+              return -1
+            fi
+            VALUE=$(grep "^$2" $1 |awk -F= '{print $2}')
+            if [ -z "$VALUE" ]; then
+              echo "Could not get property value" >&2
+              return -2
+            fi
+            echo $VALUE
+          }
+          
+
+          #
+          # STEP 1: Get property values from publisher.properties/promote.properties
+          #
+          VERSION=$(get_property build-result/publisher.properties version)
+          BUILD_ID=$(get_property build-result/promote.properties build.id)
+          # BUILD_TYPE: N=Nightly, S=Stable, R=Release
+          BUILD_TYPE=$(echo $BUILD_ID |cut -c 1)
+          
+          
+          #
+          # STEP 2: Zip the repository
+          #
+          ZIP_NAME=tmf-xtext-Update-$BUILD_ID.zip
+          pushd build-result/p2.repository
+            zip -r $WORKSPACE/build-result/downloads/$ZIP_NAME .
+            md5sum --binary $WORKSPACE/build-result/downloads/$ZIP_NAME > $WORKSPACE/build-result/downloads/$ZIP_NAME.md5
+          popd
+          
+          #
+          # STEP 3: Upload zip und .md5
+          #
+          TARGET_DROP_PATH=$DOWNLOAD_AREA/$VERSION/$BUILD_ID
+          # ensure target directory exists
+          ssh genie.xtext@projects-storage.eclipse.org 'mkdir -p $TARGET_DROP_PATH'
+          scp $WORKSPACE/build-result/downloads/$ZIP_NAME $WORKSPACE/build-result/downloads/$ZIP_NAME.md5 genie.xtext@projects-storage.eclipse.org:/$TARGET_DROP_PATH
+          
+          #
+          # STEP 4: Unpack zip to p2 repository location
+          #
+          if [ "$BUILD_TYPE" == "N" ]; then
+            # Nightly site => clear content
+            ssh genie.xtext@projects-storage.eclipse.org 'rm -rf $NIGHTLY_REPOSITORY_PATH/**'
+            unzip -d $NIGHTLY_REPOSITORY_PATH $TARGET_DROP_PATH/$ZIP_NAME
+          else
+            # TODO
+          fi
+        '''
       }
     }
-    */
     
   } // END stages
   
