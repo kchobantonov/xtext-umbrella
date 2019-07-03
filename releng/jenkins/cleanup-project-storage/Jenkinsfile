@@ -75,6 +75,12 @@ spec:
               #   * NUMBER_OF_DROPS_TO_KEEP
               #   * DOWNLOAD_AREA
               #   * DRY_RUN
+<<<<<<< HEAD
+=======
+              # 
+              # IMPORTANT:
+              # It's important to use tabs, *not* spaces in this script!
+>>>>>>> refs/heads/master
 							ssh genie.xtext@projects-storage.eclipse.org /bin/bash <<-EOF
 								# set -x # <- Uncomment for debug
 								# find most recent NUMBER_OF_DROPS_TO_KEEP directories
