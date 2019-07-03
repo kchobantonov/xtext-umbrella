@@ -214,7 +214,7 @@ spec:
           #
           TARGET_DROP_PATH=$DOWNLOAD_AREA/$VERSION/$BUILD_ID
           # ensure target directory exists
-          ssh genie.xtext@projects-storage.eclipse.org 'mkdir -p $TARGET_DROP_PATH'
+          ssh genie.xtext@projects-storage.eclipse.org "mkdir -p $TARGET_DROP_PATH"
           scp $WORKSPACE/build-result/downloads/$ZIP_NAME $WORKSPACE/build-result/downloads/$ZIP_NAME.md5 genie.xtext@projects-storage.eclipse.org:/$TARGET_DROP_PATH
           
           #
@@ -223,13 +223,13 @@ spec:
           case "$BUILD_TYPE" in
             N) # Nightly site => clear content
               REPOSITORY_PATH="/home/data/httpd/download.eclipse.org/modeling/tmf/xtext/updates/nightly"
-              ssh genie.xtext@projects-storage.eclipse.org 'rm -rf $REPOSITORY_PATH/** && unzip -d $REPOSITORY_PATH $TARGET_DROP_PATH/$ZIP_NAME' ;;
+              ssh genie.xtext@projects-storage.eclipse.org "rm -rf $REPOSITORY_PATH/** && unzip -d $REPOSITORY_PATH $TARGET_DROP_PATH/$ZIP_NAME" ;;
             S) # Stable
               REPOSITORY_PATH="/home/data/httpd/download.eclipse.org/modeling/tmf/xtext/updates/milestones/$BUILD_ID"
-              ssh genie.xtext@projects-storage.eclipse.org 'mkdir $REPOSITORY_PATH && unzip -d $REPOSITORY_PATH $TARGET_DROP_PATH/$ZIP_NAME' ;;
+              ssh genie.xtext@projects-storage.eclipse.org "mkdir $REPOSITORY_PATH && unzip -d $REPOSITORY_PATH $TARGET_DROP_PATH/$ZIP_NAME" ;;
             R) # Release
               REPOSITORY_PATH="/home/data/httpd/download.eclipse.org/modeling/tmf/xtext/updates/releases/$VERSION"
-              ssh genie.xtext@projects-storage.eclipse.org 'mkdir $REPOSITORY_PATH && unzip -d $REPOSITORY_PATH $TARGET_DROP_PATH/$ZIP_NAME' ;;
+              ssh genie.xtext@projects-storage.eclipse.org "mkdir $REPOSITORY_PATH && unzip -d $REPOSITORY_PATH $TARGET_DROP_PATH/$ZIP_NAME" ;;
           esac
         ''' // END container
         }
