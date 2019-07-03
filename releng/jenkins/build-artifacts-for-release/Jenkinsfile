@@ -2,7 +2,7 @@ pipeline {
   agent {
     kubernetes {
       label 'releng-build-artifacts-for-release-' + env.BUILD_NUMBER
-      defaultContainer 'xtext-buildenv'
+      defaultContainer 'jnlp'
       yaml '''
 apiVersion: v1
 kind: Pod
@@ -107,6 +107,7 @@ spec:
     
     stage('Sign & Upload to OSSRH') {
       steps {
+        container ('xtext-buildenv') {
         // see https://wiki.eclipse.org/Jenkins#How_can_artifacts_be_deployed_to_OSSRH_.2F_Maven_Central.3F
         sh '''
           XTEXT_VERSION=$(curl -s https://raw.githubusercontent.com/eclipse/xtext-umbrella/master/releng/org.eclipse.xtext.sdk.parent/pom.xml | grep -m1 -Po "<version>\\K[^<]*")
@@ -131,6 +132,7 @@ spec:
 
 #            clean publishMavenXtext publishEclipseXtext
         '''
+        }
       }
     }
     
