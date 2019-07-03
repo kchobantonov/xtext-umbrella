@@ -68,27 +68,66 @@ spec:
     string(name: 'LOCATION_URL', description: 'For operation ADD_LOCATION, REMOVE_LOCATION: The URL to add or remove')
   }
   stages {
-    stage('do it!') {
+    stage('Download composite*.xml') {
+      when {
+        expression { env.COMPOSITE_REPO_LOCATION != null }
+      }
       steps {
         sshagent(['projects-storage.eclipse.org-bot-ssh']) {
           sh '''
-            if [ -z "$COMPOSITE_REPO_LOCATION" ]; then
-              echo "No repository selected."
-              exit -1
-            fi
             #
             # Download compositeArtifacts.xml & compositeContent.xml from projects-storage
             #
-            mkdir -p $COMPOSITE_REPO_LOCATION
-            rm -f $COMPOSITE_REPO_LOCATION/*
+            set -x
+
             scp genie.xtext@projects-storage.eclipse.org:$DOWNLOAD_AREA/$COMPOSITE_REPO_LOCATION/composite*.xml $COMPOSITE_REPO_LOCATION
             
-            cat $COMPOSITE_REPO_LOCATION/compositeArtifacts.xml
-            cat $COMPOSITE_REPO_LOCATION/compositeContent.xml
+            cat compositeArtifacts.xml
+            cat compositeContent.xml
 
-            TIMESTAMP=$(awk 'BEGIN {srand(); print srand()}')
+            TIMESTAMP=$(date +%s)
           '''
         }
+      }
+    }
+    stage('Add Location') {
+      when {
+        allOf {
+          expression {env.COMPOSITE_REPO_LOCATION != null }
+          environment name: 'OPERATION', value: 'ADD_LOCATION'
+          expression {env.LOCATION_URL != null }
+        }
+      }
+      steps {
+        sh '''
+          #
+          # Add given location to compositeArtifacts.xml & compositeContent.xml
+          # and upload them back to projects-storage
+          #
+          set -x
+
+          echo $TIMESTAMP # test if timestamp var survived (probably not)
+        '''
+      }
+    }
+    stage('Remove Location') {
+      when {
+        allOf {
+          expression {env.COMPOSITE_REPO_LOCATION != null }
+          environment name: 'OPERATION', value: 'REMOVE_LOCATION'
+          expression {env.LOCATION_URL != null }
+        }
+      }
+      steps {
+        sh '''
+          #
+          # Remove given location from compositeArtifacts.xml & compositeContent.xml
+          # and upload them back to projects-storage
+          #
+          set -x
+
+          echo $TIMESTAMP # test if timestamp var survived (probably not)
+        '''
       }
     }
   }
