@@ -127,9 +127,7 @@ spec:
             -Posspub.packJars=$ORG_GRADLE_PROJECT_OSSPUB_PACK_JARS \
             -Psigning.secretKeyRingFile=/home/default/.gnupg/secring.gpg \
             -Psigning.keyId=D1AE0CFD \
-            clean publishEclipseXtext
-
-#            clean publishMavenXtext publishEclipseXtext
+            clean publishMavenXtext publishEclipseXtext
         '''
         } // END container
       }
