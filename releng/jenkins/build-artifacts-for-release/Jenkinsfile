@@ -139,6 +139,7 @@ spec:
       steps {
         // this has to run in the xtext-devenv container, since jnlp container does not have a 'zip' command installed
         container ('xtext-buildenv') {
+        sshagent(['projects-storage.eclipse.org-bot-ssh']) {
         sh '''
           # TODO move function to external shell script
           # $1 path to .properties file
@@ -178,37 +179,6 @@ spec:
             md5sum --binary $WORKSPACE/build-result/downloads/$ZIP_NAME > $WORKSPACE/build-result/downloads/$ZIP_NAME.md5
           cd $WORKSPACE
           
-        '''
-        } // END container
-        
-        // remote commands require the jnlp container
-        container ('jnlp') {
-          sh '''
-          # TODO move function to external shell script
-          # $1 path to .properties file
-          # $2 property name
-          # @return property value
-          get_property () {
-            if [ ! -f "$1" ]; then
-              echo "File not found: $1" >&2
-              return -1
-            fi
-            VALUE=$(grep "^$2" $1 |awk -F= '{print $2}')
-            if [ -z "$VALUE" ]; then
-              echo "Could not get property value" >&2
-              return -2
-            fi
-            echo $VALUE
-          }
-          VERSION=$(get_property build-result/publisher.properties version)
-          BUILD_ID=$(get_property build-result/promote.properties build.id)
-          # BUILD_TYPE: N=Nightly, S=Stable, R=Release
-          BUILD_TYPE=$(echo $BUILD_ID |cut -c 1)
-          case "$BUILD_TYPE" in
-            N) ZIP_NAME=tmf-xtext-Update-$BUILD_ID.zip ;;
-            S|R) ZIP_NAME=tmf-xtext-Update-$VERSION.zip ;;
-          esac
-          
           #
           # STEP 3: Upload zip und .md5
           #
@@ -231,11 +201,11 @@ spec:
               REPOSITORY_PATH="/home/data/httpd/download.eclipse.org/modeling/tmf/xtext/updates/releases/$VERSION"
               ssh genie.xtext@projects-storage.eclipse.org "mkdir $REPOSITORY_PATH && unzip -d $REPOSITORY_PATH $TARGET_DROP_PATH/$ZIP_NAME" ;;
           esac
-        ''' // END container
-        }
-      }
-    }
-    
+        '''
+        } // END sshagent
+        } // END container
+      } // END steps
+    } // END stage
   } // END stages
   
   post {
