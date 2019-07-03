@@ -182,8 +182,8 @@ spec:
         } // END container
         
         // remote commands require the jnlp container
-        container ('jnlp') {
         sshagent(['projects-storage.eclipse.org-bot-ssh']) {
+        container ('jnlp') {
           sh '''
           # TODO move function to external shell script
           # $1 path to .properties file
@@ -233,7 +233,7 @@ spec:
               ssh genie.xtext@projects-storage.eclipse.org "mkdir $REPOSITORY_PATH && unzip -d $REPOSITORY_PATH $TARGET_DROP_PATH/$ZIP_NAME" ;;
           esac
           '''
-        } // END sshagent
+        } // END sshagent
         } // END container
       }
     }
