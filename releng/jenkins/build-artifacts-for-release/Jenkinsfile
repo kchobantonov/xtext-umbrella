@@ -187,8 +187,7 @@ spec:
           #
           if [ "$BUILD_TYPE" == "N" ]; then
             # Nightly site => clear content
-            ssh genie.xtext@projects-storage.eclipse.org 'rm -rf $NIGHTLY_REPOSITORY_PATH/**'
-            unzip -d $NIGHTLY_REPOSITORY_PATH $TARGET_DROP_PATH/$ZIP_NAME
+            ssh genie.xtext@projects-storage.eclipse.org 'rm -rf $NIGHTLY_REPOSITORY_PATH/** && unzip -d $NIGHTLY_REPOSITORY_PATH $TARGET_DROP_PATH/$ZIP_NAME'
           else
             # TODO
           fi
