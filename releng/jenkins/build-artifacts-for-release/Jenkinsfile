@@ -131,7 +131,7 @@ spec:
 
 #            clean publishMavenXtext publishEclipseXtext
         '''
-        } // END container
+        } // END container
       }
     }
     
@@ -140,6 +140,7 @@ spec:
         // this has to run in the xtext-devenv container, since jnlp container does not have a 'zip' command installed
         container ('xtext-buildenv') {
         sh '''
+          # TODO move function to external shell script
           # $1 path to .properties file
           # $2 property name
           # @return property value
@@ -183,6 +184,22 @@ spec:
         // remote commands require the jnlp container
         container ('jnlp') {
           sh '''
+          # TODO move function to external shell script
+          # $1 path to .properties file
+          # $2 property name
+          # @return property value
+          get_property () {
+            if [ ! -f "$1" ]; then
+              echo "File not found: $1" >&2
+              return -1
+            fi
+            VALUE=$(grep "^$2" $1 |awk -F= '{print $2}')
+            if [ -z "$VALUE" ]; then
+              echo "Could not get property value" >&2
+              return -2
+            fi
+            echo $VALUE
+          }
           VERSION=$(get_property build-result/publisher.properties version)
           BUILD_ID=$(get_property build-result/promote.properties build.id)
           # BUILD_TYPE: N=Nightly, S=Stable, R=Release
