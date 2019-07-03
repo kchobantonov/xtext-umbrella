@@ -87,6 +87,9 @@ spec:
 
             TIMESTAMP=$(date +%s)
           '''
+          sh '''
+            echo $TIMESTAMP
+          '''
         }
       }
     }
