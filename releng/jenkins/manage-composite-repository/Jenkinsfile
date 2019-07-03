@@ -80,7 +80,7 @@ spec:
             #
             set -x
 
-            scp genie.xtext@projects-storage.eclipse.org:$DOWNLOAD_AREA/$COMPOSITE_REPO_LOCATION/composite*.xml $COMPOSITE_REPO_LOCATION
+            scp genie.xtext@projects-storage.eclipse.org:$DOWNLOAD_AREA/$COMPOSITE_REPO_LOCATION/composite*.xml .
             
             cat compositeArtifacts.xml
             cat compositeContent.xml
