@@ -4,8 +4,6 @@ MAINTAINER karsten.thoms@itemis.de
 # Back to root for install
 USER 0
 
-RUN dnf -y update
-
 # ruby-devel required to install jekyll
 # redhat-rpm-config required during jekyll install: gcc: error: /usr/lib/rpm/redhat/redhat-hardened-cc1: No such file or directory
 
@@ -30,14 +28,25 @@ ENTRYPOINT "/bin/bash"
 
 USER 0
 RUN dnf --assumeyes install \
-  java-1.8.0-openjdk.x86_64 \
-  java-1.8.0-openjdk-src.x86_64 \
+  java-11-openjdk.x86_64 \
+  java-11-openjdk-src.x86_64 \
   groovy \
   maven \
   hub
+RUN dnf --assumeyes install gpg
+# For XSL manipulating composite site descriptors
+RUN dnf --assumeyes install libxslt
+#RUN rpm -Uv libxml2-2.9.9-2.fc30.i686.rpm && \
+#    rpm -Uv libxslt-1.1.33-1.fc30.i686.rpm
+# Make Java 11 default
+RUN alternatives --config java <<< '2'
+# see https://docs.openshift.com/container-platform/3.9/creating_images/guidelines.html#use-uid
+RUN chgrp -R 0 /home/default && \
+    chmod -R g=u /home/default
+
 USER default
 
 # needed for Xtend MOJO IT tests
 ENV M2_HOME=/usr/share/maven
-ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk
+ENV JAVA_HOME=/usr/lib/jvm/jre-11-openjdk
 

@@ -76,6 +76,9 @@ spec:
               echo "No repository selected."
               exit -1
             fi
+            #
+            # Download compositeArtifacts.xml & compositeContent.xml from projects-storage
+            #
             mkdir -p $COMPOSITE_REPO_LOCATION
             rm -f $COMPOSITE_REPO_LOCATION/*
             scp genie.xtext@projects-storage.eclipse.org:$DOWNLOAD_AREA/$COMPOSITE_REPO_LOCATION/composite*.xml $COMPOSITE_REPO_LOCATION
