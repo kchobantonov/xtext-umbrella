@@ -2,7 +2,7 @@ pipeline {
   agent {
     kubernetes {
       label 'releng-build-artifacts-for-release-' + env.BUILD_NUMBER
-      defaultContainer 'xtext-buildenv'
+      defaultContainer 'jnlp'
       yaml '''
 apiVersion: v1
 kind: Pod
@@ -106,6 +106,7 @@ spec:
     
     stage('Sign & Upload to OSSRH') {
       steps {
+        container ('xtext-buildenv') {
         // see https://wiki.eclipse.org/Jenkins#How_can_artifacts_be_deployed_to_OSSRH_.2F_Maven_Central.3F
         sh '''
           XTEXT_VERSION=$(curl -s https://raw.githubusercontent.com/eclipse/xtext-umbrella/master/releng/org.eclipse.xtext.sdk.parent/pom.xml | grep -m1 -Po "<version>\\K[^<]*")
@@ -130,11 +131,14 @@ spec:
 
 #            clean publishMavenXtext publishEclipseXtext
         '''
+        } // END container
       }
     }
     
     stage('Deploy to Eclipse project storage') {
       steps {
+        // this has to run in the xtext-devenv container, since jnlp container does not have a 'zip' command installed
+        container ('xtext-buildenv') {
         sh '''
           # $1 path to .properties file
           # $2 property name
@@ -174,42 +178,43 @@ spec:
           cd $WORKSPACE
           
         '''
+        } // END container
         
         // remote commands require the jnlp container
         container ('jnlp') {
           sh '''
-            VERSION=$(get_property build-result/publisher.properties version)
-            BUILD_ID=$(get_property build-result/promote.properties build.id)
-            # BUILD_TYPE: N=Nightly, S=Stable, R=Release
-            BUILD_TYPE=$(echo $BUILD_ID |cut -c 1)
-            case "$BUILD_TYPE" in
-              N) ZIP_NAME=tmf-xtext-Update-$BUILD_ID.zip ;;
-              S|R) ZIP_NAME=tmf-xtext-Update-$VERSION.zip ;;
-            esac
-            
-            #
-            # STEP 3: Upload zip und .md5
-            #
-            TARGET_DROP_PATH=$DOWNLOAD_AREA/$VERSION/$BUILD_ID
-            # ensure target directory exists
-            ssh genie.xtext@projects-storage.eclipse.org 'mkdir -p $TARGET_DROP_PATH'
-            scp $WORKSPACE/build-result/downloads/$ZIP_NAME $WORKSPACE/build-result/downloads/$ZIP_NAME.md5 genie.xtext@projects-storage.eclipse.org:/$TARGET_DROP_PATH
-            
-            #
-            # STEP 4: Unpack zip to p2 repository location
-            #
-            case "$BUILD_TYPE" in
-              N) # Nightly site => clear content
-                REPOSITORY_PATH="/home/data/httpd/download.eclipse.org/modeling/tmf/xtext/updates/nightly"
-                ssh genie.xtext@projects-storage.eclipse.org 'rm -rf $REPOSITORY_PATH/** && unzip -d $REPOSITORY_PATH $TARGET_DROP_PATH/$ZIP_NAME' ;;
-              S) # Stable
-                REPOSITORY_PATH="/home/data/httpd/download.eclipse.org/modeling/tmf/xtext/updates/milestones/$BUILD_ID"
-                ssh genie.xtext@projects-storage.eclipse.org 'mkdir $REPOSITORY_PATH && unzip -d $REPOSITORY_PATH $TARGET_DROP_PATH/$ZIP_NAME' ;;
-              R) # Release
-                REPOSITORY_PATH="/home/data/httpd/download.eclipse.org/modeling/tmf/xtext/updates/releases/$VERSION"
-                ssh genie.xtext@projects-storage.eclipse.org 'mkdir $REPOSITORY_PATH && unzip -d $REPOSITORY_PATH $TARGET_DROP_PATH/$ZIP_NAME' ;;
-            esac
-          '''
+          VERSION=$(get_property build-result/publisher.properties version)
+          BUILD_ID=$(get_property build-result/promote.properties build.id)
+          # BUILD_TYPE: N=Nightly, S=Stable, R=Release
+          BUILD_TYPE=$(echo $BUILD_ID |cut -c 1)
+          case "$BUILD_TYPE" in
+            N) ZIP_NAME=tmf-xtext-Update-$BUILD_ID.zip ;;
+            S|R) ZIP_NAME=tmf-xtext-Update-$VERSION.zip ;;
+          esac
+          
+          #
+          # STEP 3: Upload zip und .md5
+          #
+          TARGET_DROP_PATH=$DOWNLOAD_AREA/$VERSION/$BUILD_ID
+          # ensure target directory exists
+          ssh genie.xtext@projects-storage.eclipse.org 'mkdir -p $TARGET_DROP_PATH'
+          scp $WORKSPACE/build-result/downloads/$ZIP_NAME $WORKSPACE/build-result/downloads/$ZIP_NAME.md5 genie.xtext@projects-storage.eclipse.org:/$TARGET_DROP_PATH
+          
+          #
+          # STEP 4: Unpack zip to p2 repository location
+          #
+          case "$BUILD_TYPE" in
+            N) # Nightly site => clear content
+              REPOSITORY_PATH="/home/data/httpd/download.eclipse.org/modeling/tmf/xtext/updates/nightly"
+              ssh genie.xtext@projects-storage.eclipse.org 'rm -rf $REPOSITORY_PATH/** && unzip -d $REPOSITORY_PATH $TARGET_DROP_PATH/$ZIP_NAME' ;;
+            S) # Stable
+              REPOSITORY_PATH="/home/data/httpd/download.eclipse.org/modeling/tmf/xtext/updates/milestones/$BUILD_ID"
+              ssh genie.xtext@projects-storage.eclipse.org 'mkdir $REPOSITORY_PATH && unzip -d $REPOSITORY_PATH $TARGET_DROP_PATH/$ZIP_NAME' ;;
+            R) # Release
+              REPOSITORY_PATH="/home/data/httpd/download.eclipse.org/modeling/tmf/xtext/updates/releases/$VERSION"
+              ssh genie.xtext@projects-storage.eclipse.org 'mkdir $REPOSITORY_PATH && unzip -d $REPOSITORY_PATH $TARGET_DROP_PATH/$ZIP_NAME' ;;
+          esac
+        ''' // END container
         }
       }
     }
