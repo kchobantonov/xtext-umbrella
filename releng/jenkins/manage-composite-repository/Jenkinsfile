@@ -38,7 +38,7 @@ spec:
 
   environment {
     DOWNLOAD_AREA = '/home/data/httpd/download.eclipse.org/modeling/tmf/xtext/updates'
-    TIMESTAMP = currentBuild.startTimeInMillis
+    TIMESTAMP = "${currentBuild.startTimeInMillis}"
   }
 
   parameters {
