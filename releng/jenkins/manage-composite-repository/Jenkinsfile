@@ -74,6 +74,9 @@ spec:
         expression { env.COMPOSITE_REPO_LOCATION != null }
       }
       steps {
+        script {
+          currentBuild.displayName = "$COMPOSITE_REPO_LOCATION / $OPERATION"
+        }
         sshagent(['projects-storage.eclipse.org-bot-ssh']) {
           sh '''
             #
@@ -84,12 +87,8 @@ spec:
             scp genie.xtext@projects-storage.eclipse.org:$DOWNLOAD_AREA/$COMPOSITE_REPO_LOCATION/composite*.xml .
             
             cat compositeArtifacts.xml
-            cat compositeContent.xml
+            #cat compositeContent.xml
 
-            #TIMESTAMP=$(date +%s)
-          '''
-          sh '''
-            echo $TIMESTAMP
           '''
         }
       }
@@ -110,7 +109,6 @@ spec:
           #
           set -x
 
-          echo $TIMESTAMP # test if timestamp var survived (probably not)
         '''
       }
     }
@@ -130,7 +128,6 @@ spec:
           #
           set -x
 
-          echo $TIMESTAMP # test if timestamp var survived (probably not)
         '''
       }
     }
