@@ -75,7 +75,7 @@ spec:
       }
       steps {
         script {
-          currentBuild.displayName = "$COMPOSITE_REPO_LOCATION / $OPERATION"
+          currentBuild.description = "$COMPOSITE_REPO_LOCATION / $OPERATION"
         }
         sshagent(['projects-storage.eclipse.org-bot-ssh']) {
           sh '''
