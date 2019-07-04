@@ -76,6 +76,9 @@ spec:
       steps {
         script {
           currentBuild.description = "$COMPOSITE_REPO_LOCATION / $OPERATION"
+          println "COMPOSITE_REPO_LOCATION = ${COMPOSITE_REPO_LOCATION}"
+          println "OPERATION = ${OPERATION}"
+          println "LOCATION_URL = ${LOCATION_URL}"
         }
         sshagent(['projects-storage.eclipse.org-bot-ssh']) {
           sh '''
@@ -85,11 +88,16 @@ spec:
             set -x
 
             scp genie.xtext@projects-storage.eclipse.org:$DOWNLOAD_AREA/$COMPOSITE_REPO_LOCATION/composite*.xml .
-            
+
             cat compositeArtifacts.xml
             #cat compositeContent.xml
 
           '''
+        }
+        script {
+          def compArtFile = readFile "${WORKSPACE}/compositeArtifacts.xml"
+          def compArtXml = new XmlParser().parseText(compArtFile)
+          println (compArtXml.repository.children.@size)
         }
       }
     }
