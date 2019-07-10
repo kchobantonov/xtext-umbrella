@@ -101,6 +101,9 @@ spec:
     stage('Prepare') {
       steps {
         git branch: 'master', changelog: false, poll: false, url: 'https://github.com/xtext/publishing.git'
+        dir ('xtext-umbrella') {
+            git branch: 'master', changelog: false, poll: false, url: 'https://github.com/eclipse/xtext-umbrella.git'
+        }
       }
     }
     
@@ -127,12 +130,32 @@ spec:
             -Posspub.packJars=$ORG_GRADLE_PROJECT_OSSPUB_PACK_JARS \
             -Psigning.secretKeyRingFile=/home/default/.gnupg/secring.gpg \
             -Psigning.keyId=D1AE0CFD \
-            clean publishMavenXtext publishEclipseXtext
+            clean 
+            # publishMavenXtext publishEclipseXtext
         '''
         } // END container
       }
     }
+
+    stage('Reports') {
+      steps {
+        container ('xtext-buildenv') {
+          dir ('xtext-umbrella/releng/org.eclipse.xtext.releng.simrel.tests') {
+            sh '''
+              mvn -B -U \
+                -Dmaven.repo.local=/home/jenkins/.m2/repository \
+                -Dmaven.test.failure.ignore=true \
+                -DreportRepoDir=$WORKSPACE/build-result/p2.repository/ \
+                -DreportOutputDir=$WORKSPACE/build-result/test-results/simrel \
+                verify
+            '''
+            junit testResults: 'target/surefire-reports/*.xml'
+          }
+        }
+      }
+    }
     
+    /*
     stage('Deploy to Eclipse project storage') {
       steps {
         // this has to run in the xtext-devenv container, since jnlp container does not have a 'zip' command installed
@@ -236,6 +259,7 @@ spec:
         } // END sshagent
       }
     }
+    */
     
   } // END stages
   
@@ -243,6 +267,7 @@ spec:
     always {
       archiveArtifacts artifacts: 'build-result/**'
     }
+    /*
     changed {
       script {
         def envName = ''
@@ -267,6 +292,7 @@ spec:
         slackSend message: "${curResult}: <${env.BUILD_URL}|${env.JOB_NAME}#${env.BUILD_NUMBER}${envName}>", botUser: true, channel: 'xtext-builds', color: "${color}"
       }
     }
+    */
   }
 
 }
