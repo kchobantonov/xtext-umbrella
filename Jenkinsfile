@@ -130,7 +130,6 @@ spec:
   post {
     always {
       junit testResults: '**/target/surefire-reports/*.xml'
-      junit testResults: '**/some/more/path-regexes.xml'
     }
     success {
       archiveArtifacts artifacts: 'build/**'
