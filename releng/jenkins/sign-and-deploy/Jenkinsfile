@@ -1,75 +1,7 @@
 pipeline {
   agent {
     kubernetes {
-      label 'sign-and-deploy-' + env.BUILD_NUMBER
-      defaultContainer 'jnlp'
-      yaml '''
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: jnlp
-    args: ['\$(JENKINS_SECRET)', '\$(JENKINS_NAME)']
-    volumeMounts:
-    - mountPath: /home/jenkins/.ssh
-      name: volume-known-hosts
-    resources:
-      limits:
-        memory: "0.5Gi"
-        cpu: "0.2"
-      requests:
-        memory: "0.5Gi"
-        cpu: "0.2"
-  - name: xtext-buildenv
-    image: docker.io/smoht/xtext-buildenv:0.9
-    tty: true
-    resources:
-      limits:
-        memory: "3.5Gi"
-        cpu: "1.0"
-      requests:
-        memory: "3.5Gi"
-        cpu: "1.0"
-    volumeMounts:
-    - name: settings-xml
-      mountPath: /home/jenkins/.m2/settings.xml
-      subPath: settings.xml
-      readOnly: true
-    - name: toolchains-xml
-      mountPath: /home/jenkins/.m2/toolchains.xml
-      subPath: toolchains.xml
-      readOnly: true
-    - name: settings-security-xml
-      mountPath: /home/jenkins/.m2/settings-security.xml
-      subPath: settings-security.xml
-      readOnly: true
-    - name: m2-repo
-      mountPath: /home/jenkins/.m2/repository
-  volumes:
-  - name: volume-known-hosts
-    configMap:
-      name: known-hosts
-  - name: settings-xml
-    secret:
-      secretName: m2-secret-dir
-      items:
-      - key: settings.xml
-        path: settings.xml
-  - name: toolchains-xml
-    configMap:
-      name: m2-dir
-      items:
-      - key: toolchains.xml
-        path: toolchains.xml
-  - name: settings-security-xml
-    secret:
-      secretName: m2-secret-dir
-      items:
-      - key: settings-security.xml
-        path: settings-security.xml
-  - name: m2-repo
-    emptyDir: {}
-    '''
+      label 'migration'
     }
   }
 
@@ -85,7 +17,7 @@ spec:
   }
   
   parameters {
-    choice(name: 'RELEASE_TYPE', choices: ['Integration', 'Beta', 'M1', 'M2', 'M3', 'RC1', 'RC2', 'GA'], description:
+    choice(name: 'RELEASE_TYPE', choices: ['Integration', 'Beta', 'M1', 'M2', 'M3', 'GA'], description:
       '''
         Kind of release to build. The chosen value is dependent on the parameter BUILD_TYPE. Use value:
           <ul>
@@ -113,6 +45,15 @@ spec:
           git branch: 'master', changelog: false, poll: false, url: 'https://github.com/xtext/publishing.git'
         }
         sh "pwd && ls -la"
+        script {
+          // extract Xtext version from 'versions.gradle' of the current branch
+          env.XTEXT_VERSION=sh (returnStdout: true, 
+            script: '''curl -s https://raw.githubusercontent.com/eclipse/xtext-lib/${params.BRANCH_TO_DEPLOY}/gradle/versions.gradle | grep -Po "version = \\'\\K([^\\']*)(?=\\')")''')
+          // for non-integration builds set the build job's display name
+          if (params.RELEASE_TYPE != 'Integration') {
+             currentBuild.displayName = "#${env.BUILD_NUMBER} (${env.XTEXT_VERSION}
+          }
+        }
       }
     }
     
@@ -142,8 +83,8 @@ spec:
         // see https://wiki.eclipse.org/Jenkins#How_can_artifacts_be_deployed_to_OSSRH_.2F_Maven_Central.3F
         dir('publishing') {
         sh ''' 
-          XTEXT_VERSION=$(curl -s https://raw.githubusercontent.com/eclipse/xtext-lib/$BRANCH_TO_DEPLOY/gradle/versions.gradle | grep -Po "version = \\'\\K([^\\']*)(?=\\')")
           echo "Xtext version on branch $BRANCH_TO_DEPLOY is $XTEXT_VERSION"
+          error("Build failed by intention..")
           gpg --batch --import "${KEYRING}"
           for fpr in $(gpg --list-keys --with-colons  | awk -F: '/fpr:/ {print $10}' | sort -u);
           do
@@ -177,7 +118,6 @@ spec:
           #
           # STEP 1: Get property values from publisher.properties/promote.properties
           #
-          XTEXT_VERSION=$(curl -s https://raw.githubusercontent.com/eclipse/xtext-lib/$BRANCH_TO_DEPLOY/gradle/versions.gradle | grep -Po "version = \\'\\K([^\\']*)(?=\\')")
           VERSION=$($SCRIPTS/get_property.sh build-result/publisher.properties version)
           BUILD_ID=$($SCRIPTS/get_property.sh build-result/promote.properties build.id)
           BUILD_TYPE=$($SCRIPTS/get_build_type.sh $BUILD_ID)
@@ -204,7 +144,6 @@ spec:
         container ('jnlp') {
         dir('publishing') {
           sh '''
-          XTEXT_VERSION=$(curl -s https://raw.githubusercontent.com/eclipse/xtext-lib/$BRANCH_TO_DEPLOY/gradle/versions.gradle | grep -o "version = \\'[^\\']*" | cut -d "'" -f2)
           VERSION=$($SCRIPTS/get_property.sh build-result/publisher.properties version)
           BUILD_ID=$($SCRIPTS/get_property.sh build-result/promote.properties build.id)
           if [ -z "$BUILD_ID" ]
@@ -270,8 +209,6 @@ spec:
           environment name: 'RELEASE_TYPE', value: 'M1'
           environment name: 'RELEASE_TYPE', value: 'M2'
           environment name: 'RELEASE_TYPE', value: 'M3'
-          environment name: 'RELEASE_TYPE', value: 'RC1'
-          environment name: 'RELEASE_TYPE', value: 'RC2'
           environment name: 'RELEASE_TYPE', value: 'GA'
         }
       }
