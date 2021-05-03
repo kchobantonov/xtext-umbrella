@@ -116,7 +116,7 @@
 		<unit id="org.eclipse.xtext.xtext.ui.graph.source" version="0.0.0"/>
 		<unit id="org.eclipse.xtext.xbase.ui.testing" version="0.0.0"/>
 		<unit id="org.eclipse.xtext.xbase.ui.testing.source" version="0.0.0"/>
-		<repository location="https://ci.eclipse.org/xtext/job/xtext-eclipse/job/master/lastStableBuild/artifact/build/p2-repository/"/>
+		<repository location="https://ci.eclipse.org/xtext/job/xtext-eclipse/job/cd_getRidOfEquinoxCommon/lastStableBuild/artifact/build/p2-repository/"/>
 	</location>
 	
 	<location includeAllPlatforms="false" includeConfigurePhase="false" includeMode="planner" includeSource="true" type="InstallableUnit">
